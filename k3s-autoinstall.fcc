@@ -1,5 +1,5 @@
 variant: fcos
-version: 1.0.0
+version: 1.7.0
 systemd:
   units:
   - name: getty@tty1.service
@@ -52,7 +52,7 @@ systemd:
 storage:
   files:
     - path: /usr/local/bin/run-k3s-prereq-installer
-      mode: 0755
+      mode: 0x755
       contents:
         inline: |
           #!/usr/bin/env sh
@@ -62,7 +62,7 @@ storage:
           }
           main
     - path: /usr/local/bin/run-k3s-installer
-      mode: 0755
+      mode: 0x755
       contents:
         inline: |
           #!/usr/bin/env sh
