@@ -1,4 +1,7 @@
+<img width="96" height="16" alt="no-ai_sign_tiny_100-human-made" src="https://github.com/user-attachments/assets/717139d7-05fd-4002-96ba-75dcdf15ac3e" />
+
 ### CoreOS w/ K3s Ignition Config Generator
+
 
 Rough Makefile and Fedora CoreOS configuration to generate an ~~image~~
 Ignition config that automatically installs K3s
