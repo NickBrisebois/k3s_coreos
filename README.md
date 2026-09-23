@@ -1,4 +1,6 @@
-<img width="96" height="16" alt="no-ai_sign_tiny_100-human-made" src="https://github.com/user-attachments/assets/717139d7-05fd-4002-96ba-75dcdf15ac3e" />
+<img width="131" height="42" alt="Developed-By-a-Human-Not-By-AI-Badge-black@2x" src="https://github.com/user-attachments/assets/8dc103c1-9d91-46ee-8de4-673ac1f589dc" />
+
+
 
 ### CoreOS w/ K3s Ignition Config Generator
 
