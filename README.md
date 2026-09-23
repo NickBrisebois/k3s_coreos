@@ -33,6 +33,16 @@ make build-ign
 
 #### Install CoreOS with Ignition Config
 
+
+##### Option 1:
 Download [CoreOS](https://fedoraproject.org/coreos/download/) and boot into it on your VM or PC
 
 Start the install using the previously compiled `.ign` file
+
+##### Option 2:
+Build CoreOS ISO with Ignition config built in:
+```sh
+make build-iso
+```
+
+Install the ISO
