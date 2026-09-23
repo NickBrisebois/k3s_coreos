@@ -19,7 +19,7 @@ IMAGE_VALIDATE=quay.io/coreos/ignition-validate:${RELEASE_TAG}
 IMAGE_FCCT=quay.io/coreos/fcct:${RELEASE_TAG}
 
 CMD_FCCT=podman run -i --rm ${IMAGE_FCCT}
-CMD_INSTALLER=podman run --privileged --rm -v .:/data -w /data ${IMAGE_INSTALLER}
+CMD_INSTALLER=podman run --privileged --rm -v .:/data -v ${TMP_DIR}:/data/tmp -v ${OUT_DIR}:/data/build -w /data ${IMAGE_INSTALLER}
 CMD_VALIDATE=podman run --rm -i ${IMAGE_VALIDATE}
 
 # Automatically export environment variables from .env
@@ -49,7 +49,7 @@ validate-ign: ## Validate compiled IGN files
 	@echo "validating ${FILE_OUT_IGN}"
 	${CMD_VALIDATE} - < ${FILE_OUT_IGN} && (echo "IGN is valid"; exit 0)
 
-build-ign: clean  ## Build ignition files from butane fcc files. Authorized public key is filled in using fq from .env
+build-ign:  ## Build ignition files from butane fcc files. Authorized public key is filled in using fq from .env
 	@echo "compiling files: ${FILE_INSTALL_FCC}"
 	mkdir -p ${OUT_DIR}
 	yq -y '.passwd.users[0].ssh_authorized_keys += [env.COREOS_USER_PUBKEY]' ${FILE_INSTALL_FCC} \
@@ -61,19 +61,21 @@ ifneq (,$(wildcard ${FILE_STATE_FILE}))
 else
 	@echo "downloading latest CoreOS ISO to ${TMP_DIR}"
 	mkdir -p ${TMP_DIR}
+	mkdir -p ${OUT_DIR}
 	ISO_OUTPUT=$$(\
 		${CMD_INSTALLER} download -f iso \
 			--architecture ${COREOS_ARCH} \
 			--platform ${COREOS_PLATFORM} \
+			--directory ${TMP_DIR} \
 			--stream ${COREOS_RELEASE_STREAM} \
 		| tail -n 1 \
 	) && \
 	echo $$(basename $$ISO_OUTPUT) > ${TMP_DIR}/${FILE_STATE_FILE}
 endif
 
-build-iso: download-base-iso  ## Build the CoreOS ISO with the compiled IGN
+build-iso: download-base-iso build-ign ## Build the CoreOS ISO with the compiled IGN
 	@echo "creating CoreOS ISO that installs to ${DEST_INSTALL_DEVICE}"
 	${CMD_INSTALLER} iso customize \
 		--dest-device ${DEST_INSTALL_DEVICE} \
 		--dest-ignition ${FILE_OUT_IGN} \
-		-o k3s-coreos.iso "$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
+		-o ${OUT_DIR}/k3s-coreos.iso "${TMP_DIR}/$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
