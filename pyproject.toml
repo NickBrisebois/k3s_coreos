@@ -1,0 +1,9 @@
+[project]
+name = "k3s-builder"
+version = "0.1.0"
+description = "Generate CoreOS ISOs with K3s preconfigured"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "pyyaml>=6.0.3",
+]

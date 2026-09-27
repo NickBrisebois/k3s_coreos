@@ -31,6 +31,7 @@ endif
 .DEFAULT_GOAL := help
 .PHONY: *
 
+
 help:  ## Print this help
 	@echo "Usage: make [target]"
 	@echo "Targets:"
@@ -60,8 +61,6 @@ ifneq (,$(wildcard ${FILE_STATE_FILE}))
 	@echo "CoreOS ISO already exists, skipping download (run \`make clean\` to force redownload)"
 else
 	@echo "downloading latest CoreOS ISO to ${TMP_DIR}"
-	mkdir -p ${TMP_DIR}
-	mkdir -p ${OUT_DIR}
 	ISO_OUTPUT=$$(\
 		${CMD_INSTALLER} download -f iso \
 			--architecture ${COREOS_ARCH} \
@@ -78,4 +77,4 @@ build-iso: download-base-iso build-ign ## Build the CoreOS ISO with the compiled
 	${CMD_INSTALLER} iso customize \
 		--dest-device ${DEST_INSTALL_DEVICE} \
 		--dest-ignition ${FILE_OUT_IGN} \
-		-o ${OUT_DIR}/k3s-coreos.iso "${TMP_DIR}/$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
+		-o ${OUT_DIR}/k3s-coreos-$$(date +"%k%M%S%d%m%y").iso "${TMP_DIR}/$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
