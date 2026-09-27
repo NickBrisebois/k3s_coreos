@@ -46,13 +46,10 @@ def get_systemd_units(read_path: Path, context: dict[str, Any]) -> CoreOSUnits:
 
 
 def __inject_variables(file_contents: str, key_vals: dict[str, Any]) -> str:
-    # CoreOS/Butane templates often use {{var}}, but .format() uses {var}.
-    # We replace {{ and }} to { and } to support the common template style.
-    safe_contents = file_contents.replace("{{", "{").replace("}}", "}")
     try:
-        return safe_contents.format(**key_vals)
+        return file_contents.format(**key_vals)
     except KeyError:
-        return safe_contents
+        return file_contents
 
 
 def get_scripts(
