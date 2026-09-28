@@ -45,6 +45,16 @@ def get_systemd_units(read_path: Path, context: dict[str, Any]) -> CoreOSUnits:
     return CoreOSUnits(units=processed)
 
 
+def get_systemd_dropins(read_path: Path, context: dict[str, Any]) -> CoreOSUnits:
+    systemd_units = os.listdir(read_path)
+    processed = []
+    for unit in systemd_units:
+        with open(read_path / unit) as f:
+            contents = f.read()
+        contents = __inject_variables(contents, context)
+        processed.append(CoreOSSDUnit(name=unit, enabled=True, contents=contents))
+
+
 def __inject_variables(file_contents: str, key_vals: dict[str, Any]) -> str:
     try:
         return file_contents.format(**key_vals)
@@ -73,17 +83,6 @@ def get_scripts(
     return processed
 
 
-def get_configs(s3s_config: S3sConfig) -> list[CoreOSFile]:
-    # write_k3s_config(s3s_config, Path("tmp/files/s3s_config.yaml"))
-    return []
-
-
-def build_file_list(
-    scripts: list[CoreOSFile], configs: list[CoreOSFile]
-) -> list[CoreOSFile]:
-    return scripts + configs
-
-
 def write_fcc(install_config: CoreOSSInstall, path: Path) -> None:
     os.makedirs(path.parent, exist_ok=True)
     with open(path, "w") as f:
@@ -95,7 +94,7 @@ def main() -> None:
     parser.add_argument(
         "--type",
         type=InstallType,
-        choices=[t.value for t in InstallType],
+        choices=list(InstallType),
         required=True,
     )
     parser.add_argument("--master-token", type=str, required=False)
@@ -115,15 +114,23 @@ def main() -> None:
 
     args = parser.parse_args()
     context = vars(args)
+
+    # SYSTEMD UNITS TO INSTALL
     units = get_systemd_units(Path(f"{BASE_DIR}/files/systemd_units"), context)
+    dropins = get_systemd_units(Path(f"{BASE_DIR}/files/systemd_dropin"), context)
+    units.units.extend(dropins.units)
+
+    # SCRIPTS TO INSTALL TO /bin
     scripts = get_scripts(
         Path(f"{BASE_DIR}/files/scripts"),
-        Path(f"{BASE_DIR}/tmp/files/scripts"),
+        Path("/usr/local/bin/"),
         context,
     )
-    configs = [
+
+    # GENERAL CONFIG FILES TO INSTALL
+    other_configs = [
         CoreOSFile(
-            path="s3s_config.yaml",
+            path="/etc/rancher/k3s/config.yaml",
             mode=644,
             contents=CoreOSFileContent(
                 yaml.dump(
@@ -141,12 +148,18 @@ def main() -> None:
                 )
             ),
             overwrite=True,
-        )
+        ),
+        CoreOSFile(
+            path="/etc/hostname",
+            mode=644,
+            overwrite=True,
+            contents=CoreOSFileContent(args.node_hostname),
+        ),
     ]
     built_coreos_install = CoreOSSInstall(
         systemd=units,
         storage=CoreOSStorage(
-            files=build_file_list(scripts, configs),
+            files=scripts + other_configs,
         ),
         passwd=CoreOSPasswd(
             users=[

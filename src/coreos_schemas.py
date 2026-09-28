@@ -6,6 +6,9 @@ class InstallType(enum.Enum):
     CONTROLPLANE = "controlplane"
     NODE = "node"
 
+    def __str__(self):
+        return self.value
+
 
 @dataclasses.dataclass
 class S3sConfig:
