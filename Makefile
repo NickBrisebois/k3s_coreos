@@ -6,11 +6,16 @@ COREOS_PLATFORM?=metal
 DEST_INSTALL_DEVICE?=/dev/sda
 POST_INSTALL_SCRIPT?=post.sh
 
+VENV_DIR=$(PWD)/.venv
+VENV_DIR_EXISTS=$$(test -d ${VENV_DIR} && echo 1 || echo 0)
+VENV_PYTHON=${VENV_DIR}/bin/python3
+
 TMP_DIR=./tmp
 OUT_DIR=./build
 
 FILE_STATE_FILE=.base-iso-path
 FILE_INSTALL_FCC=k3s-autoinstall.fcc
+FILE_OUT_FCC=${TMP_DIR}/k3s-autoinstall.fcc
 FILE_OUT_IGN=${OUT_DIR}/k3s-autoinstall.igc
 
 RELEASE_TAG=release
@@ -41,7 +46,10 @@ clean:  ## Clean up install files
 	rm -rf ${TMP_DIR}
 	rm -rf ${OUT_DIR}
 
-ensure-dependencies: ## Pull the latest docker images used by the Makefile
+ensure-venv: ## Ensure the Python virtual environment is set up for butane config gen
+	python3 -m venv ${VENV_DIR}
+
+ensure-dependencies: ensure-venv ## Pull the latest docker images used by the Makefile
 	podman pull ${IMAGE_INSTALLER}
 	podman pull ${IMAGE_VALIDATE}
 	podman pull ${IMAGE_FCCT}
@@ -55,6 +63,25 @@ build-ign:  ## Build ignition files from butane fcc files. Authorized public key
 	mkdir -p ${OUT_DIR}
 	yq -y '.passwd.users[0].ssh_authorized_keys += [env.COREOS_USER_PUBKEY]' ${FILE_INSTALL_FCC} \
 		| ${CMD_FCCT} --pretty --strict > ${FILE_OUT_IGN}
+
+generate-butane: ensure-venv  ## Generate butane config from environment variable values
+	@echo "generating butane config from environment variable values"
+	@echo ">> COREOS_ARCH: ${COREOS_ARCH}"
+	@echo ">> COREOS_PLATFORM: ${COREOS_PLATFORM}"
+	@echo ">> COREOS_RELEASE_STREAM: ${COREOS_RELEASE_STREAM}"
+	${VENV_PYTHON} src/main.py \
+		--install-type "${INSTALL_TYPE}" \
+		--master-token "${INSTALL_NODE_MASTER_TOKEN}" \
+		--master-url "${INSTALL_NODE_MASTER_URL}" \
+		--install-username "${INSTALL_USER_USERNAME}" \
+		--install-user-pubkey "${COREOS_USER_PUBKEY}" \
+		--node-hostname "${INSTALL_NODE_HOSTNAME}" \
+		--node-addr "${INSTALL_NODE_ADDR}" \
+		--k3s-selinux-rpm-url "${K3S_SELINUX_RPM_URL}" \
+		--coreos-arch "${COREOS_ARCH}" \
+		--coreos-release-stream "${COREOS_RELEASE_STREAM}" \
+		--install-device "${DEST_INSTALL_DEVICE}" \
+		--save-to-file "${FILE_OUT_FCC}"
 
 download-base-iso:  ## Downloads the base CoreOS ISO
 ifneq (,$(wildcard ${FILE_STATE_FILE}))

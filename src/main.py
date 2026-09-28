@@ -19,6 +19,8 @@ from coreos_schemas import (
     S3sConfig,
 )
 
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+
 
 # fix pyyaml not printing multiline strings properly
 # https://stackoverflow.com/a/50519774
@@ -30,7 +32,16 @@ def multiline_str_presenter(dumper, data):
 
 yaml.add_representer(str, multiline_str_presenter)
 
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+
+def __inject_variables(file_contents: str, key_vals: dict[str, Any]) -> str:
+    try:
+        return file_contents.format(**key_vals)
+    except KeyError:
+        return file_contents
+
+
+def __tpl_filename_to_filename(tpl_filename: str) -> str:
+    return tpl_filename.replace(".tpl", "")
 
 
 def get_systemd_units(read_path: Path, context: dict[str, Any]) -> CoreOSUnits:
@@ -49,17 +60,13 @@ def get_systemd_dropins(read_path: Path, context: dict[str, Any]) -> CoreOSUnits
     systemd_units = os.listdir(read_path)
     processed = []
     for unit in systemd_units:
-        with open(read_path / unit) as f:
+        file_path = read_path / unit
+        with open(file_path) as f:
             contents = f.read()
         contents = __inject_variables(contents, context)
         processed.append(CoreOSSDUnit(name=unit, enabled=True, contents=contents))
 
-
-def __inject_variables(file_contents: str, key_vals: dict[str, Any]) -> str:
-    try:
-        return file_contents.format(**key_vals)
-    except KeyError:
-        return file_contents
+    return CoreOSUnits(units=processed)
 
 
 def get_scripts(
@@ -68,12 +75,13 @@ def get_scripts(
     scripts = os.listdir(read_path)
     processed = []
     for script in scripts:
-        with open(read_path / script) as f:
+        file_path = read_path / script
+        with open(file_path) as f:
             contents = f.read()
         contents = __inject_variables(contents, context)
         processed.append(
             CoreOSFile(
-                path=f"{write_path}/{script}",
+                path=f"{write_path}/{__tpl_filename_to_filename(script)}",
                 mode=644,
                 contents=CoreOSFileContent(inline=contents),
                 overwrite=True,
@@ -92,12 +100,13 @@ def write_fcc(install_config: CoreOSSInstall, path: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--type",
-        type=InstallType,
-        choices=list(InstallType),
+        "--install-type",
+        type=str,
+        choices=[t.value for t in InstallType],
         required=True,
     )
     parser.add_argument("--master-token", type=str, required=False)
+    parser.add_argument("--master-url", type=str, required=False)
     parser.add_argument("--install-username", type=str, required=True)
     parser.add_argument("--install-user-pubkey", type=str, required=True)
     parser.add_argument("--node-hostname", type=str, required=False)
@@ -111,8 +120,10 @@ def main() -> None:
     parser.add_argument(
         "--install-device", default="/dev/sda", type=str, required=False
     )
+    parser.add_argument("--save-to-file", type=str, required=False)
 
     args = parser.parse_args()
+    install_type = InstallType(args.install_type)
     context = vars(args)
 
     # SYSTEMD UNITS TO INSTALL
@@ -172,7 +183,9 @@ def main() -> None:
         variant="fcos",
         version="1.7.0",
     )
-    write_fcc(built_coreos_install, Path("tmp/coreos_install.yaml"))
+
+    if context["save_to_file"]:
+        write_fcc(built_coreos_install, Path(context["save_to_file"]))
 
 
 if __name__ == "__main__":
