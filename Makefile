@@ -58,7 +58,7 @@ validate-ign: ## Validate compiled IGN files
 	@echo "validating ${FILE_OUT_IGN}"
 	${CMD_VALIDATE} - < ${FILE_OUT_IGN} && (echo "IGN is valid"; exit 0)
 
-build-ign:  ## Build ignition files from butane fcc files. Authorized public key is filled in using fq from .env
+build-ign: ## Build ignition files from butane fcc files. Authorized public key is filled in using fq from .env
 	@echo "compiling files: ${FILE_INSTALL_FCC}"
 	mkdir -p ${OUT_DIR}
 	cat ${FILE_INSTALL_FCC} | ${CMD_FCCT} --pretty --strict > ${FILE_OUT_IGN}
@@ -87,6 +87,9 @@ ifneq (,$(wildcard ${FILE_STATE_FILE}))
 	@echo "CoreOS ISO already exists, skipping download (run \`make clean\` to force redownload)"
 else
 	@echo "downloading latest CoreOS ISO to ${TMP_DIR}"
+	mkdir -p ${TMP_DIR}
+	mkdir -p ${OUT_DIR}
+
 	ISO_OUTPUT=$$(\
 		${CMD_INSTALLER} download -f iso \
 			--architecture ${COREOS_ARCH} \
@@ -98,9 +101,9 @@ else
 	echo $$(basename $$ISO_OUTPUT) > ${TMP_DIR}/${FILE_STATE_FILE}
 endif
 
-build-iso: download-base-iso build-ign ## Build the CoreOS ISO with the compiled IGN
+build-iso: download-base-iso generate-butane build-ign ## Build the CoreOS ISO with the compiled IGN
 	@echo "creating CoreOS ISO that installs to ${DEST_INSTALL_DEVICE}"
 	${CMD_INSTALLER} iso customize \
 		--dest-device ${DEST_INSTALL_DEVICE} \
 		--dest-ignition ${FILE_OUT_IGN} \
-		-o ${OUT_DIR}/k3s-coreos-$$(date +"%k%M%S%d%m%y").iso "${TMP_DIR}/$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
+		-o "${OUT_DIR}/k3s-coreos-$$(date +"%k%M%S%d%m%y").iso" "${TMP_DIR}/$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
