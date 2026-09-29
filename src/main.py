@@ -82,7 +82,7 @@ def get_scripts(
         processed.append(
             CoreOSFile(
                 path=f"{write_path}/{__tpl_filename_to_filename(script)}",
-                mode=644,
+                mode=0o644,
                 contents=CoreOSFileContent(inline=contents),
                 overwrite=True,
             )
@@ -142,7 +142,7 @@ def main() -> None:
     other_configs = [
         CoreOSFile(
             path="/etc/rancher/k3s/config.yaml",
-            mode=644,
+            mode=0o644,
             contents=CoreOSFileContent(
                 yaml.dump(
                     dataclasses.asdict(
@@ -153,7 +153,7 @@ def main() -> None:
                                 args.node_addr,
                             ],
                             node_ip=args.node_addr,
-                            write_kubeconfig_mode="0644",
+                            write_kubeconfig_mode=0o644,
                         )
                     )
                 )
@@ -162,7 +162,7 @@ def main() -> None:
         ),
         CoreOSFile(
             path="/etc/hostname",
-            mode=644,
+            mode=0o644,
             overwrite=True,
             contents=CoreOSFileContent(args.node_hostname),
         ),

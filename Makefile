@@ -61,8 +61,7 @@ validate-ign: ## Validate compiled IGN files
 build-ign:  ## Build ignition files from butane fcc files. Authorized public key is filled in using fq from .env
 	@echo "compiling files: ${FILE_INSTALL_FCC}"
 	mkdir -p ${OUT_DIR}
-	yq -y '.passwd.users[0].ssh_authorized_keys += [env.COREOS_USER_PUBKEY]' ${FILE_INSTALL_FCC} \
-		| ${CMD_FCCT} --pretty --strict > ${FILE_OUT_IGN}
+	cat ${FILE_INSTALL_FCC} | ${CMD_FCCT} --pretty --strict > ${FILE_OUT_IGN}
 
 generate-butane: ensure-venv  ## Generate butane config from environment variable values
 	@echo "generating butane config from environment variable values"

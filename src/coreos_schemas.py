@@ -15,7 +15,7 @@ class S3sConfig:
     token: str
     ttl_san: list[str]
     node_ip: str
-    write_kubeconfig_mode: str
+    write_kubeconfig_mode: int
 
 
 @dataclasses.dataclass
