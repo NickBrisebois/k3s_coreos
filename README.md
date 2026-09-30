@@ -2,7 +2,7 @@
 
 
 
-### CoreOS w/ K3s Ignition Config Generator
+### CoreOS w/ K3s Install ISO / Ignition Config Generator
 
 
 Rough Makefile and Fedora CoreOS configuration to generate a CoreOS ISO or Ignition config that automatically installs K3s
