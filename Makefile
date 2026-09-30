@@ -15,7 +15,7 @@ OUT_DIR=./build
 
 FILE_STATE_FILE=.base-iso-path
 FILE_OUT_FCC=${TMP_DIR}/k3s-autoinstall.fcc
-FILE_OUT_IGN=${OUT_DIR}/k3s-autoinstall.igc
+FILE_OUT_IGN=${OUT_DIR}/k3s-autoinstall.ign
 
 RELEASE_TAG=release
 IMAGE_INSTALLER=quay.io/coreos/coreos-installer:${RELEASE_TAG}
