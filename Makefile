@@ -106,3 +106,5 @@ build-iso: download-base-iso generate-butane build-ign ## Build the CoreOS ISO w
 		--dest-device ${DEST_INSTALL_DEVICE} \
 		--dest-ignition ${FILE_OUT_IGN} \
 		-o "${OUT_DIR}/k3s-coreos-$$(date +"%k%M%S%d%m%y")-${INSTALL_NODE_HOSTNAME}.iso" "${TMP_DIR}/$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
+
+all: generate-butane build-ign build-iso

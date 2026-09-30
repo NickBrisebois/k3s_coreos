@@ -18,12 +18,16 @@ class BaseCoreOSSchema:
         )
 
 
+class HexInt(int):
+    pass
+
+
 @dataclasses.dataclass
 class K3sConfig(BaseCoreOSSchema):
     token: str
     ttl_san: list[str]
     node_ip: str
-    write_kubeconfig_mode: int
+    write_kubeconfig_mode: HexInt
 
 
 @dataclasses.dataclass
@@ -34,7 +38,7 @@ class CoreOSFileContent(BaseCoreOSSchema):
 @dataclasses.dataclass
 class CoreOSFile(BaseCoreOSSchema):
     path: str
-    mode: int
+    mode: HexInt
     contents: CoreOSFileContent
     overwrite: bool = False
 

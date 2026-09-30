@@ -15,6 +15,7 @@ from coreos_schemas import (
     CoreOSStorage,
     CoreOSUnits,
     CoreOSUser,
+    HexInt,
     InstallType,
     K3sConfig,
 )
@@ -30,6 +31,12 @@ def multiline_str_presenter(dumper, data):
     )
 
 
+# force pyyaml to print chmod-style octals as octals rather than just the decimal value
+def hex_int_presenter(dumper, data):
+    return dumper.represent_int(hex(data))
+
+
+yaml.add_representer(HexInt, hex_int_presenter)
 yaml.add_representer(str, multiline_str_presenter)
 
 
@@ -86,8 +93,8 @@ def get_scripts(
         contents = __inject_variables(contents, context)
         processed.append(
             CoreOSFile(
-                path=f"{write_path}/{__tpl_filename_to_filename(script)}",
-                mode=0x644,
+                path=f"{write_path}/{script}",
+                mode=HexInt(0x644),
                 contents=CoreOSFileContent(inline=contents),
                 overwrite=True,
             )
@@ -147,7 +154,7 @@ def main() -> None:
     other_configs = [
         CoreOSFile(
             path="/etc/rancher/k3s/config.yaml",
-            mode=0x644,
+            mode=HexInt(0x644),
             contents=CoreOSFileContent(
                 yaml.dump(
                     K3sConfig(
@@ -157,7 +164,7 @@ def main() -> None:
                             args.node_addr,
                         ],
                         node_ip=args.node_addr,
-                        write_kubeconfig_mode=0x644,
+                        write_kubeconfig_mode=HexInt(0x644),
                     ).to_yaml_dict()
                 )
             ),
@@ -165,7 +172,7 @@ def main() -> None:
         ),
         CoreOSFile(
             path="/etc/hostname",
-            mode=0x644,
+            mode=HexInt(0x644),
             overwrite=True,
             contents=CoreOSFileContent(args.node_hostname),
         ),
