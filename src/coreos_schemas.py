@@ -11,7 +11,15 @@ class InstallType(enum.Enum):
 
 
 @dataclasses.dataclass
-class S3sConfig:
+class BaseCoreOSSchema:
+    def to_yaml_dict(self) -> dict:
+        return dataclasses.asdict(
+            self, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}
+        )
+
+
+@dataclasses.dataclass
+class K3sConfig(BaseCoreOSSchema):
     token: str
     ttl_san: list[str]
     node_ip: str
@@ -19,12 +27,12 @@ class S3sConfig:
 
 
 @dataclasses.dataclass
-class CoreOSFileContent:
+class CoreOSFileContent(BaseCoreOSSchema):
     inline: str
 
 
 @dataclasses.dataclass
-class CoreOSFile:
+class CoreOSFile(BaseCoreOSSchema):
     path: str
     mode: int
     contents: CoreOSFileContent
@@ -32,35 +40,45 @@ class CoreOSFile:
 
 
 @dataclasses.dataclass
-class CoreOSStorage:
+class CoreOSStorage(BaseCoreOSSchema):
     files: list[CoreOSFile]
 
 
 @dataclasses.dataclass
-class CoreOSUser:
+class CoreOSUser(BaseCoreOSSchema):
     name: str
     ssh_authorized_keys: list[str]
 
 
 @dataclasses.dataclass
-class CoreOSPasswd:
+class CoreOSPasswd(BaseCoreOSSchema):
     users: list[CoreOSUser]
 
 
 @dataclasses.dataclass
-class CoreOSSDUnit:
+class CoreOSSDUnitBase(BaseCoreOSSchema):
     name: str
-    enabled: bool
+
+
+@dataclasses.dataclass
+class CoreOSSDUnit(CoreOSSDUnitBase):
+    enabled: bool | None = None
     contents: str | None = None
 
 
 @dataclasses.dataclass
-class CoreOSUnits:
-    units: list[CoreOSSDUnit]
+class CoreOSSDUnitDropin(CoreOSSDUnitBase):
+    name: str
+    dropins: list[CoreOSSDUnit] | None = None
 
 
 @dataclasses.dataclass
-class CoreOSSInstall:
+class CoreOSUnits(BaseCoreOSSchema):
+    units: list[CoreOSSDUnitBase]
+
+
+@dataclasses.dataclass
+class CoreOSSInstall(BaseCoreOSSchema):
     systemd: CoreOSUnits
     storage: CoreOSStorage
     passwd: CoreOSPasswd

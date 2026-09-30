@@ -11,12 +11,13 @@ from coreos_schemas import (
     CoreOSFileContent,
     CoreOSPasswd,
     CoreOSSDUnit,
+    CoreOSSDUnitDropin,
     CoreOSSInstall,
     CoreOSStorage,
     CoreOSUnits,
     CoreOSUser,
     InstallType,
-    S3sConfig,
+    K3sConfig,
 )
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -57,14 +58,19 @@ def get_systemd_units(read_path: Path, context: dict[str, Any]) -> CoreOSUnits:
 
 
 def get_systemd_dropins(read_path: Path, context: dict[str, Any]) -> CoreOSUnits:
-    systemd_units = os.listdir(read_path)
     processed = []
-    for unit in systemd_units:
-        file_path = read_path / unit
-        with open(file_path) as f:
-            contents = f.read()
-        contents = __inject_variables(contents, context)
-        processed.append(CoreOSSDUnit(name=unit, enabled=True, contents=contents))
+    for root, dirs, files in os.walk(read_path):
+        for file in files:
+            file_path = Path(root) / file
+            with open(file_path) as f:
+                contents = f.read()
+            contents = __inject_variables(contents, context)
+            processed.append(
+                CoreOSSDUnitDropin(
+                    name=file_path.parent.name,
+                    dropins=[CoreOSSDUnit(name=file, contents=contents)],
+                )
+            )
 
     return CoreOSUnits(units=processed)
 
@@ -82,7 +88,7 @@ def get_scripts(
         processed.append(
             CoreOSFile(
                 path=f"{write_path}/{__tpl_filename_to_filename(script)}",
-                mode=0o644,
+                mode=0x644,
                 contents=CoreOSFileContent(inline=contents),
                 overwrite=True,
             )
@@ -94,7 +100,7 @@ def get_scripts(
 def write_fcc(install_config: CoreOSSInstall, path: Path) -> None:
     os.makedirs(path.parent, exist_ok=True)
     with open(path, "w") as f:
-        yaml.dump(dataclasses.asdict(install_config), f)
+        yaml.dump(install_config.to_yaml_dict(), f)
 
 
 def main() -> None:
@@ -128,7 +134,7 @@ def main() -> None:
 
     # SYSTEMD UNITS TO INSTALL
     units = get_systemd_units(Path(f"{BASE_DIR}/files/systemd_units"), context)
-    dropins = get_systemd_units(Path(f"{BASE_DIR}/files/systemd_dropin"), context)
+    dropins = get_systemd_dropins(Path(f"{BASE_DIR}/files/systemd_dropin"), context)
     units.units.extend(dropins.units)
 
     # SCRIPTS TO INSTALL TO /bin
@@ -142,27 +148,25 @@ def main() -> None:
     other_configs = [
         CoreOSFile(
             path="/etc/rancher/k3s/config.yaml",
-            mode=0o644,
+            mode=0x644,
             contents=CoreOSFileContent(
                 yaml.dump(
-                    dataclasses.asdict(
-                        S3sConfig(
-                            token=args.master_token,
-                            ttl_san=[
-                                args.node_hostname,
-                                args.node_addr,
-                            ],
-                            node_ip=args.node_addr,
-                            write_kubeconfig_mode=0o644,
-                        )
-                    )
+                    K3sConfig(
+                        token=args.master_token,
+                        ttl_san=[
+                            args.node_hostname,
+                            args.node_addr,
+                        ],
+                        node_ip=args.node_addr,
+                        write_kubeconfig_mode=0x644,
+                    ).to_yaml_dict()
                 )
             ),
             overwrite=True,
         ),
         CoreOSFile(
             path="/etc/hostname",
-            mode=0o644,
+            mode=0x644,
             overwrite=True,
             contents=CoreOSFileContent(args.node_hostname),
         ),

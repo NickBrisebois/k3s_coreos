@@ -14,7 +14,6 @@ TMP_DIR=./tmp
 OUT_DIR=./build
 
 FILE_STATE_FILE=.base-iso-path
-FILE_INSTALL_FCC=k3s-autoinstall.fcc
 FILE_OUT_FCC=${TMP_DIR}/k3s-autoinstall.fcc
 FILE_OUT_IGN=${OUT_DIR}/k3s-autoinstall.igc
 
@@ -59,9 +58,9 @@ validate-ign: ## Validate compiled IGN files
 	${CMD_VALIDATE} - < ${FILE_OUT_IGN} && (echo "IGN is valid"; exit 0)
 
 build-ign: ## Build ignition files from butane fcc files. Authorized public key is filled in using fq from .env
-	@echo "compiling files: ${FILE_INSTALL_FCC}"
+	@echo "compiling files: ${FILE_OUT_FCC}"
 	mkdir -p ${OUT_DIR}
-	cat ${FILE_INSTALL_FCC} | ${CMD_FCCT} --pretty --strict > ${FILE_OUT_IGN}
+	cat ${FILE_OUT_FCC} | ${CMD_FCCT} --pretty --strict > ${FILE_OUT_IGN}
 
 generate-butane: ensure-venv  ## Generate butane config from environment variable values
 	@echo "generating butane config from environment variable values"
@@ -106,4 +105,4 @@ build-iso: download-base-iso generate-butane build-ign ## Build the CoreOS ISO w
 	${CMD_INSTALLER} iso customize \
 		--dest-device ${DEST_INSTALL_DEVICE} \
 		--dest-ignition ${FILE_OUT_IGN} \
-		-o "${OUT_DIR}/k3s-coreos-$$(date +"%k%M%S%d%m%y").iso" "${TMP_DIR}/$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
+		-o "${OUT_DIR}/k3s-coreos-$$(date +"%k%M%S%d%m%y")-${INSTALL_NODE_HOSTNAME}.iso" "${TMP_DIR}/$$(cat ${TMP_DIR}/${FILE_STATE_FILE})"
